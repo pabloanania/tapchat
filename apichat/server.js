@@ -1,10 +1,3 @@
-/*
-TO DO:
-+ GET unread messages
-+ Entidad users
-+ Test mediante Moka + Chai
-*/
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const moment = require('moment');
@@ -80,8 +73,12 @@ app.get('/api/messages', (req, res) => {
 
     jwtValidateToken(res, token, function(data){
         if (data.error == undefined){
-            mongoFind( { "from": data.id }, "tap", "messages", {}, function(msgs){
-                res.status(200).send( {"token": data.token, "messages": msgs} );
+            let objToFind = { "from": data.id };
+            if (req.query.unread != undefined) 
+                objToFind["readed"] = false;
+
+            mongoFind(objToFind, "tap", "messages", {}, function(msgs){
+                res.status(200).send( {"messages": msgs, "token": data.token} );
                 
                 for (var i=0; i<msgs.length; i++)
                     mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, "tap", "messages");
