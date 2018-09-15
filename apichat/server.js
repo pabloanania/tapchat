@@ -27,7 +27,6 @@ app.get('/api/users', (req, res) => {
            if (data.length > 0){
                 res.status(200).send( {"usuarios": users, "token": data.token} );
             }
-           if  
         });   
     });     
 });
