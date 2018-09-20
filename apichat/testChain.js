@@ -5,58 +5,38 @@ const expect = require('chai').expect;
 chai.use(chaiHttp);
 const url= 'http://localhost:3000';
 
-   
-//testeo traer todos los usuarios
-describe('get de usuarios: ',()=>{
-          it('get de usuarios', (done) => {
-            chai.request(url)
-              .get('/api/users')
-              .end( function(err,res){
-                console.log(res.body)
-                expect(res).to.have.status(200);
-                done();
-              });
-          });
-        });
-    
-//testeo insertar un usuario
-describe('Inserte un usuario ',()=>{
-    it('Inserte un usuario', (done) => {
-      chai.request(url)
-        .post('/api/users')
-        .send({id:0, username: "cacho", password: "123456"})
-        .end( function(err,res){
-          console.log(res.body)
-          expect(res).to.have.status(200);
-          done();
-        });
-    });
-  });
 
-     
-//testeo get mensajes
-describe('get message: ',()=>{
-    it('get message', (done) => {
-      chai.request(url)
-        .get('/api/messages')
-        .end( function(err,res){
-          console.log(res.body)
-          expect(res).to.have.status(200);
-          done();
-        });
-    });
-  });
+describe('Users', function() {
+  it('should list ALL users on /users GET');
+  it('should add a SINGLE users on /user POST');
+});
 
-//testeo post mensajes
-describe('post message ',()=>{
-    it('post message', (done) => {
-      chai.request(url)
-        .post('/api/message')
-        .send({from:1, to: "cacho", message: "hello"})
-        .end( function(err,res){
-          console.log(res.body)
-          expect(res).to.have.status(200);
-          done();
-        });
+
+//testing de GET users
+it('should list ALL users on /users GET', function(done) {
+  chai.request(server)
+    .get('/api/users')
+    .end(function(err, res){
+      res.should.have.status(200);
+      done();
     });
-  });
+});
+
+
+//testing POST de users
+it('should add a SINGLE users on /users POST', function(done) {
+  chai.request(server)
+    .post('/api/users')
+    .send({'username': 'cacho', 'password': '1234'})
+    .end(function(err, res){
+      res.should.have.status(200);
+      res.should.be.json;
+      res.body.should.be.a('object');
+      res.body.should.have.property('SUCCESS');
+      res.body.SUCCESS.should.be.a('object');
+      res.body.SUCCESS.should.have.property('_id');
+      res.body.SUCCESS.should.have.property('name');
+      res.body.SUCCESS.should.have.property('password');
+      done();
+    });
+});
