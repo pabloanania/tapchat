@@ -23,9 +23,11 @@ app.get('/api/users', (req, res) => {
     
     //valido el token 
     jwtValidateToken(res, token, function(data){
-        mongoFind({}, users, "tap", "users", function(data){
-           if (data.length > 0){
-                res.status(200).send( {"usuarios": users, "token": data.token} );
+        mongoFind({}, "tap", "users", {}, function(users){
+           if (users.length > 0){
+                res.status(200).send( {"users": users, "token": data.token} );
+            }else{
+                endByError(res, "No existen usuarios", 404);
             }
         });   
     });     
@@ -34,15 +36,13 @@ app.get('/api/users', (req, res) => {
 app.post('/api/users/', (req, res) => {
     let token = req.body.token;
 
-        jwtValidateToken(res, token, function(data){ 
-            if (data.error == undefined){
-                getUserIdByQuery(req.user, function(user){
-                mongoInsert({ "id": data.id, "username": req.body.username, "password" : req.body.password }, "tap", "messages");
-                res.status(200).send("Usuario dado de alta");
-                });    
-            }
-        });              
-    });
+    jwtValidateToken(res, token, function(data){ 
+        if (data.error == undefined){
+            mongoInsert({ "username": req.body.username, "password" : req.body.password }, "tap", "users");
+            res.status(200).send("Usuario dado de alta");
+        }
+    });              
+});
 
 function getUserIdByQuery(userQuery, onSuccessCallback){
     mongoFindOne(userQuery, "tap", "users", function(data){
