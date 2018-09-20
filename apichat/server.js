@@ -27,7 +27,11 @@ app.get('/api/users', (req, res) => {
            if (users.length > 0){
                 res.status(200).send( {"users": users, "token": data.token} );
             }else{
+<<<<<<< HEAD
                 endByError(res, "No existen usuarios", 404);
+=======
+                // to do: Qué pasa si no encuentra users?
+>>>>>>> 8e38662cbee4a44138ccdd9379a65f69d8b026b2
             }
         });   
     });     
