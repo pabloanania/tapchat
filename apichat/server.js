@@ -15,16 +15,30 @@ const tokenExpiration = 60;                     // Expresado en segundos
 /*
 *   ENTIDAD USERS
 */  
-app.get('/api/users', (req, res) => {
-
-});
-
-app.get('/api/users/:id', (req, res) => {
-
+app.get('/api/users', (req, res) => {  
+    let token = req.query.token;
+    
+    //valido el token 
+    jwtValidateToken(res, token, function(data){
+        mongoFind({}, "tap", "users", {}, function(users){
+           if (users.length > 0){
+                res.status(200).send( {"users": users, "token": data.token} );
+            }else{
+                endByError(res, "No existen usuarios", 404);
+            }
+        });   
+    });     
 });
 
 app.post('/api/users/', (req, res) => {
+    let token = req.body.token;
 
+    jwtValidateToken(res, token, function(data){ 
+        if (data.error == undefined){
+            mongoInsert({ "username": req.body.username, "password" : req.body.password }, "tap", "users");
+            res.status(200).send("Usuario dado de alta");
+        }
+    });
 });
 
 function getUserIdByQuery(userQuery, onSuccessCallback){
