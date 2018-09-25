@@ -1,12 +1,38 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const moment = require('moment');
 const mongoDb = require('mongodb');
 const jwt = require('jsonwebtoken');
 const app = express();
 
 const secret = 'universidaddepalermo2018';
 const tokenExpiration = 60;                     // Expresado en segundos
+
+
+
+/*
+*   SERVIDOR
+*/
+// Parsea los body en formato json
+app.use(bodyParser.json());
+
+// Loguea las requests
+app.use((req, res, next) => {
+    console.log(`${req.method}: ${req.path}`);
+
+    next();
+});
+
+// Inicia servidor
+var server = app.listen(process.env.PORT || 3000, function () {
+    console.log('API funcionando con express...');
+});
+module.exports = server;
+
+// Envía response con fin abrupto por error
+function endByError(res, message, code){
+    res.status(code).send({"error": message}).end();
+}
+
 
 
 /*
@@ -47,6 +73,10 @@ function getUserIdByQuery(userQuery, onSuccessCallback){
     });
 }
 
+function getUserIdByName(username, onSuccessCallback){
+    getUserIdByQuery({"username": username}, onSuccessCallback);
+}
+
 /*
 *   ENTIDAD LOGIN
 */
@@ -73,7 +103,7 @@ app.post('/api/messages', (req, res) => {
 
     jwtValidateToken(res, token, function(data){
         if (data.error == undefined){
-            getUserIdByQuery(req.user, function(user){
+            getUserIdByName(req.body.to, function(user){
                 mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, "tap", "messages");
                 
                 res.status(200).send( {"token": data.token} );
@@ -102,29 +132,6 @@ app.get('/api/messages', (req, res) => {
 });
 
 
-
-/*
-*   SERVIDOR
-*/
-// Parsea los body en formato json
-app.use(bodyParser.json());
-
-// Loguea las requests
-app.use((req, res, next) => {
-    console.log(`${req.method}: ${req.path} - ${moment().format(moment.HTML5_FMT.DATETIME_LOCAL_MS)}`);
-
-    next();
-});
-
-// Inicia servidor
-app.listen(process.env.PORT || 3000, function () {
-    console.log('API funcionando con express...');
-});
-
-// Envía response con fin abrupto por error
-function endByError(res, message, code){
-    res.status(code).send({"error": message}).end();
-}
 
 /*
 *   BASE
