@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 const secret = 'universidaddepalermo2018';
+const dbpassword = 'universidaddepalermo2018';
+const databaseName = 'pabloanania';
 const tokenExpiration = 60;                     // Expresado en segundos
 
 
@@ -46,7 +48,7 @@ app.get('/api/users', (req, res) => {
     
     //valido el token 
     jwtValidateToken(res, token, function(data){
-        mongoFind({}, "tap", "users", {}, function(users){
+        mongoFind({}, databaseName, "users", {}, function(users){
            if (users.length > 0){
                 res.status(200).send( {"users": users, "token": data.token} );
             }else{
@@ -61,14 +63,14 @@ app.post('/api/users/', (req, res) => {
 
     jwtValidateToken(res, token, function(data){ 
         if (data.error == undefined){
-            mongoInsert({ "username": req.body.username, "password" : req.body.password }, "tap", "users");
+            mongoInsert({ "username": req.body.username, "password" : req.body.password }, databaseName, "users");
             res.status(200).send("Usuario dado de alta");
         }
     });
 });
 
 function getUserIdByQuery(userQuery, onSuccessCallback){
-    mongoFindOne(userQuery, "tap", "users", function(data){
+    mongoFindOne(userQuery, databaseName, "users", function(data){
         onSuccessCallback(data._id.toString());
     });
 }
@@ -84,7 +86,7 @@ app.post('/api/login', (req, res) => {
     let user = req.body;
     
     // Obtiene el token
-    mongoFind(user, "tap", "users", {}, function(data){
+    mongoFind(user, databaseName, "users", {}, function(data){
         if (data.length > 0){
             var token = jwtCreateToken({ "username": data[0].username, "id": data[0]._id.toString() });
 
@@ -104,7 +106,7 @@ app.post('/api/messages', (req, res) => {
     jwtValidateToken(res, token, function(data){
         if (data.error == undefined){
             getUserIdByName(req.body.to, function(user){
-                mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, "tap", "messages");
+                mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, databaseName, "messages");
                 
                 res.status(200).send( {"token": data.token} );
             });
@@ -121,11 +123,11 @@ app.get('/api/messages', (req, res) => {
             if (req.query.unread != undefined) 
                 objToFind["readed"] = false;
 
-            mongoFind(objToFind, "tap", "messages", {}, function(msgs){
+            mongoFind(objToFind, databaseName, "messages", {}, function(msgs){
                 res.status(200).send( {"messages": msgs, "token": data.token} );
                 
                 for (var i=0; i<msgs.length; i++)
-                    mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, "tap", "messages");
+                    mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, databaseName, "messages");
             });
         }
     });
@@ -138,7 +140,7 @@ app.get('/api/messages', (req, res) => {
 */
 // Se conecta a la Base
 function mongoConnect(onSuccessCallback){
-    mongoDb.connect("mongodb://localhost:27017/", function(err, db) {
+    mongoDb.connect("mongodb://pabloanania:" + dbpassword + "@ds115753.mlab.com:15753/pabloanania", function(err, db) {
         if (err) throw err;
         onSuccessCallback(db);
     });
