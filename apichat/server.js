@@ -77,6 +77,11 @@ app.post('/api/users/', (req, res) => {
             mongoInsert({ "username": req.body.username, "password" : req.body.password }, databaseName, "users");
             res.status(200).send("Usuario dado de alta");
         }
+        else
+        {
+            console.log("Error al intentar crear el usuario: " + data.error); 
+            endByError(res, "Error al crear usuario", 404); 
+        }
     });
 });
 
@@ -132,6 +137,10 @@ app.post('/api/messages', (req, res) => {
                 }
             });
         }
+        else
+        {
+                endByError(res, "Credenciales incorrectas", 401);
+        }
     });
 });
 
@@ -151,6 +160,11 @@ app.get('/api/messages', (req, res) => {
                     mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, databaseName, "messages");
             });
         }
+        else
+        {
+            endByError(res, "No existen mensajes sin leer", 404);
+            console.log(data.error); 
+        }
     });
 });
 
@@ -163,6 +177,11 @@ app.get('/api/messages', (req, res) => {
 function mongoConnect(onSuccessCallback){
     mongoDb.connect(connectionString, function(err, db) {
         if (err) throw err;
+        {
+            console.log(err); 
+            endByError(res, "Error de conexion a la DB", 500);
+        }
+        console.log("Conectado a: " + db); 
         onSuccessCallback(db);
     });
 }
@@ -171,7 +190,10 @@ function mongoInsert(objToInsert, databaseName, collectionName){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).insertOne(objToInsert, function(err, res) {
             if (err) throw err;
-            console.log("1 documento insertado");
+            {
+                console.log("Error: " + err); 
+            }
+            console.log("Un documento insertado");
             db.close();
         });
     });
@@ -181,6 +203,9 @@ function mongoFindOne(objToFind, databaseName, collectionName, onSuccessCallback
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).findOne(objToFind, function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error: " + err); 
+            }
             onSuccessCallback(res);
             db.close();
         });
@@ -191,6 +216,9 @@ function mongoFind(objToFind, databaseName, collectionName, objSortRules, onSucc
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).find(objToFind).sort(objSortRules).toArray(function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error: " + err); 
+            }
             onSuccessCallback(res);
             db.close();
         });
@@ -201,6 +229,9 @@ function mongoDeleteOne(objToFind, databaseName, collectionName){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).deleteOne(objToFind, function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error: " + err); 
+            }
             db.close();
         });
     });
@@ -210,6 +241,9 @@ function mongoUpdateOne(objToFind, updateObj, databaseName, collectionName){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).updateOne(objToFind, {$set: updateObj}, function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error: " + err); 
+            }
             db.close();
         });
     });
