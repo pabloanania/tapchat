@@ -68,7 +68,8 @@ app.post('/api/users/', (req, res) => {
         }
         else
         {
-            console.log("Error al intentar crear el usuario: " + data.error);  
+            console.log("Error al intentar crear el usuario: " + data.error); 
+            endByError(res, "Error al crear usuario", 404); 
         }
     });
 });
@@ -156,7 +157,8 @@ function mongoConnect(onSuccessCallback){
     mongoDb.connect("mongodb://pabloanania:" + dbpassword + "@ds115753.mlab.com:15753/pabloanania", function(err, db) {
         if (err) throw err;
         {
-            console.log("Error de conexion a la DB: " + err); 
+            console.log(err); 
+            endByError(res, "Error de conexion a la DB", 500);
         }
         console.log("Conectado a: " + db); 
         onSuccessCallback(db);
@@ -168,7 +170,7 @@ function mongoInsert(objToInsert, databaseName, collectionName){
         db.db(databaseName).collection(collectionName).insertOne(objToInsert, function(err, res) {
             if (err) throw err;
             {
-                console.log("Error insertando en la DB: " + err); 
+                console.log("Error: " + err); 
             }
             console.log("Un documento insertado");
             db.close();
@@ -207,7 +209,7 @@ function mongoDeleteOne(objToFind, databaseName, collectionName){
         db.db(databaseName).collection(collectionName).deleteOne(objToFind, function(err, res) {
             if (err) throw err;
             {
-                console.log("Error al intentar borrar registros en la DB: " + err); 
+                console.log("Error: " + err); 
             }
             db.close();
         });
@@ -219,7 +221,7 @@ function mongoUpdateOne(objToFind, updateObj, databaseName, collectionName){
         db.db(databaseName).collection(collectionName).updateOne(objToFind, {$set: updateObj}, function(err, res) {
             if (err) throw err;
             {
-                console.log("Error al intentar actualizar en la DB: " + err); 
+                console.log("Error: " + err); 
             }
             db.close();
         });
