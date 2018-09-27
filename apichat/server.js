@@ -66,6 +66,10 @@ app.post('/api/users/', (req, res) => {
             mongoInsert({ "username": req.body.username, "password" : req.body.password }, databaseName, "users");
             res.status(200).send("Usuario dado de alta");
         }
+        else
+        {
+            console.log("Error al intentar crear el usuario: " + data.error);  
+        }
     });
 });
 
@@ -111,6 +115,10 @@ app.post('/api/messages', (req, res) => {
                 res.status(200).send( {"token": data.token} );
             });
         }
+        else
+        {
+                endByError(res, "Credenciales incorrectas", 401);
+        }
     });
 });
 
@@ -130,6 +138,11 @@ app.get('/api/messages', (req, res) => {
                     mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, databaseName, "messages");
             });
         }
+        else
+        {
+            endByError(res, "No existen mensajes sin leer", 404);
+            console.log(data.error); 
+        }
     });
 });
 
@@ -142,6 +155,10 @@ app.get('/api/messages', (req, res) => {
 function mongoConnect(onSuccessCallback){
     mongoDb.connect("mongodb://pabloanania:" + dbpassword + "@ds115753.mlab.com:15753/pabloanania", function(err, db) {
         if (err) throw err;
+        {
+            console.log("Error de conexion a la DB: " + err); 
+        }
+        console.log("Conectado a: " + db); 
         onSuccessCallback(db);
     });
 }
@@ -150,7 +167,10 @@ function mongoInsert(objToInsert, databaseName, collectionName){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).insertOne(objToInsert, function(err, res) {
             if (err) throw err;
-            console.log("1 documento insertado");
+            {
+                console.log("Error insertando en la DB: " + err); 
+            }
+            console.log("Un documento insertado");
             db.close();
         });
     });
@@ -160,6 +180,9 @@ function mongoFindOne(objToFind, databaseName, collectionName, onSuccessCallback
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).findOne(objToFind, function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error: " + err); 
+            }
             onSuccessCallback(res);
             db.close();
         });
@@ -170,6 +193,9 @@ function mongoFind(objToFind, databaseName, collectionName, objSortRules, onSucc
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).find(objToFind).sort(objSortRules).toArray(function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error: " + err); 
+            }
             onSuccessCallback(res);
             db.close();
         });
@@ -180,6 +206,9 @@ function mongoDeleteOne(objToFind, databaseName, collectionName){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).deleteOne(objToFind, function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error al intentar borrar registros en la DB: " + err); 
+            }
             db.close();
         });
     });
@@ -189,6 +218,9 @@ function mongoUpdateOne(objToFind, updateObj, databaseName, collectionName){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).updateOne(objToFind, {$set: updateObj}, function(err, res) {
             if (err) throw err;
+            {
+                console.log("Error al intentar actualizar en la DB: " + err); 
+            }
             db.close();
         });
     });
