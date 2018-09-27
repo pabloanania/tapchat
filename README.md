@@ -4,6 +4,4 @@
 * Diego Gonçalves (90830)
 
 ## TO DO:
-* Resta test y manejo exceptions en entidad users
-* Mergear y reparar conflictos branch goncalves
-* Probar mLab en NB Poli
+* Probar mLab en NB

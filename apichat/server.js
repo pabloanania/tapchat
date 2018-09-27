@@ -5,10 +5,10 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 const secret = 'universidaddepalermo2018';
-//const connectionString = 'mongodb://pabloanania:universidaddepalermo2018@ds115753.mlab.com:15753/pabloanania';
-//const databaseName = 'pabloanania';
-const connectionString = 'mongodb://localhost:27017/';
-const databaseName = 'tap';
+const connectionString = 'mongodb://pabloanania:universidaddepalermo2018@ds115753.mlab.com:15753/pabloanania';
+const databaseName = 'pabloanania';
+//const connectionString = 'mongodb://localhost:27017/';
+//const databaseName = 'tap';
 const tokenExpiration = 60;                     // Expresado en segundos
 
 
@@ -57,30 +57,30 @@ function endByError(res, message, code){
 app.get('/api/users', (req, res) => {  
     let token = req.query.token;
     
-    //valido el token 
     jwtValidateToken(res, token, function(data){
         mongoFind({}, databaseName, "users", {}, function(users){
-           if (users.length > 0){
-                res.status(200).send( {"users": users, "token": data.token} );
-            }else{
-                endByError(res, "No existen usuarios", 404);
-            }
+            res.status(200).send( {"users": users, "token": data.token} );
         });   
     });     
 });
 
 app.post('/api/users/', (req, res) => {
+    if (req.body.username == undefined || req.body.password == undefined){
+        endByError(res, "La request no posee el formato válido", 400);
+        return;
+    }
+
     let token = req.body.token;
 
     jwtValidateToken(res, token, function(data){ 
         if (data.error == undefined){
-            mongoInsert({ "username": req.body.username, "password" : req.body.password }, databaseName, "users");
-            res.status(200).send("Usuario dado de alta");
-        }
-        else
-        {
-            console.log("Error al intentar crear el usuario: " + data.error); 
-            endByError(res, "Error al crear usuario", 404); 
+            mongoInsert({ "username": req.body.username, "password" : req.body.password }, databaseName, "users", function(i_res, err){
+                if (err){
+                    if (err.code == 11000)
+                        endByError(res, "El usuario que intenta crear ya existe", 400);
+                }else
+                    res.status(201).send( {"token": data.token} );
+            });
         }
     });
 });
@@ -96,7 +96,7 @@ function getUserIdByName(username, onSuccessCallback){
 }
 
 /*
-*   ENTIDAD LOGIN - TEST OK
+*   ENTIDAD LOGIN
 */
 app.post('/api/login', (req, res) => {
     let user = req.body;
@@ -115,7 +115,7 @@ app.post('/api/login', (req, res) => {
 });
 
 /*
-*   ENTIDAD MESSAGES - TEST OK
+*   ENTIDAD MESSAGES
 */
 app.post('/api/messages', (req, res) => {
     if (req.body.to == undefined || req.body.message == undefined){
@@ -131,15 +131,11 @@ app.post('/api/messages', (req, res) => {
                 if (user != null){
                     mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, databaseName, "messages");
                 
-                    res.status(200).send( {"token": data.token} );
+                    res.status(201).send( {"token": data.token} );
                 }else{
                     endByError(res, "El usuario indicado no existe", 400);
                 }
             });
-        }
-        else
-        {
-                endByError(res, "Credenciales incorrectas", 401);
         }
     });
 });
@@ -149,7 +145,7 @@ app.get('/api/messages', (req, res) => {
 
     jwtValidateToken(res, token, function(data){
         if (data.error == undefined){
-            let objToFind = { "from": data.id };
+            let objToFind = { "to": data.id };
             if (req.query.unread != undefined) 
                 objToFind["readed"] = false;
 
@@ -157,13 +153,8 @@ app.get('/api/messages', (req, res) => {
                 res.status(200).send( {"messages": msgs, "token": data.token} );
                 
                 for (var i=0; i<msgs.length; i++)
-                    mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, databaseName, "messages");
+                    mongoUpdateOne({"_id": msgs[i]._id}, {"readed": true}, databaseName, "messages", function(){});
             });
-        }
-        else
-        {
-            endByError(res, "No existen mensajes sin leer", 404);
-            console.log(data.error); 
         }
     });
 });
@@ -176,24 +167,17 @@ app.get('/api/messages', (req, res) => {
 // Se conecta a la Base
 function mongoConnect(onSuccessCallback){
     mongoDb.connect(connectionString, function(err, db) {
-        if (err) throw err;
-        {
-            console.log(err); 
-            endByError(res, "Error de conexion a la DB", 500);
+        if (err){
+            console.log("Error de conexion a la DB: " + err.message); 
         }
-        console.log("Conectado a: " + db); 
         onSuccessCallback(db);
     });
 }
 
-function mongoInsert(objToInsert, databaseName, collectionName){
+function mongoInsert(objToInsert, databaseName, collectionName, onSuccessCallback){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).insertOne(objToInsert, function(err, res) {
-            if (err) throw err;
-            {
-                console.log("Error: " + err); 
-            }
-            console.log("Un documento insertado");
+            onSuccessCallback(res, err);
             db.close();
         });
     });
@@ -202,11 +186,7 @@ function mongoInsert(objToInsert, databaseName, collectionName){
 function mongoFindOne(objToFind, databaseName, collectionName, onSuccessCallback){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).findOne(objToFind, function(err, res) {
-            if (err) throw err;
-            {
-                console.log("Error: " + err); 
-            }
-            onSuccessCallback(res);
+            onSuccessCallback(res, err);
             db.close();
         });
     });
@@ -215,35 +195,25 @@ function mongoFindOne(objToFind, databaseName, collectionName, onSuccessCallback
 function mongoFind(objToFind, databaseName, collectionName, objSortRules, onSuccessCallback){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).find(objToFind).sort(objSortRules).toArray(function(err, res) {
-            if (err) throw err;
-            {
-                console.log("Error: " + err); 
-            }
-            onSuccessCallback(res);
+            onSuccessCallback(res, err);
             db.close();
         });
     });
 }
 
-function mongoDeleteOne(objToFind, databaseName, collectionName){
+function mongoDeleteOne(objToFind, databaseName, collectionName, onSuccessCallback){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).deleteOne(objToFind, function(err, res) {
-            if (err) throw err;
-            {
-                console.log("Error: " + err); 
-            }
+            onSuccessCallback(res, err);
             db.close();
         });
     });
 }
 
-function mongoUpdateOne(objToFind, updateObj, databaseName, collectionName){
+function mongoUpdateOne(objToFind, updateObj, databaseName, collectionName, onSuccessCallback){
     mongoConnect(function(db){
         db.db(databaseName).collection(collectionName).updateOne(objToFind, {$set: updateObj}, function(err, res) {
-            if (err) throw err;
-            {
-                console.log("Error: " + err); 
-            }
+            onSuccessCallback(res, err);
             db.close();
         });
     });

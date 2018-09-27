@@ -44,7 +44,7 @@ describe('Users', function() {
       .post('/api/messages')
       .send({'to': 'cacho', 'message': 'Hola soy cacho y estoy probando Mocha + Chai','token': nav_token})
       .end(function(err, res){
-        res.should.have.status(200);
+        res.should.have.status(201);
         res.should.be.json;
         res.body.should.be.a('object');
         res.body.should.have.property('token');
