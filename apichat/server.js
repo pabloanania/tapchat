@@ -5,8 +5,10 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 const secret = 'universidaddepalermo2018';
-const dbpassword = 'universidaddepalermo2018';
-const databaseName = 'pabloanania';
+//const connectionString = 'mongodb://pabloanania:universidaddepalermo2018@ds115753.mlab.com:15753/pabloanania';
+//const databaseName = 'pabloanania';
+const connectionString = 'mongodb://localhost:27017/';
+const databaseName = 'tap';
 const tokenExpiration = 60;                     // Expresado en segundos
 
 
@@ -15,7 +17,16 @@ const tokenExpiration = 60;                     // Expresado en segundos
 *   SERVIDOR
 */
 // Parsea los body en formato json
-app.use(bodyParser.json());
+app.use((req, res, next) => {
+    bodyParser.json()(req, res, (err) => {
+        if (err) {
+            endByError(res, "El formato de json no es correcto: " + err.message, 400);
+            return;
+        }
+        next();
+    });
+});
+
 
 // Loguea las requests
 app.use((req, res, next) => {
@@ -71,7 +82,7 @@ app.post('/api/users/', (req, res) => {
 
 function getUserIdByQuery(userQuery, onSuccessCallback){
     mongoFindOne(userQuery, databaseName, "users", function(data){
-        onSuccessCallback(data._id.toString());
+        onSuccessCallback(data != null ? data._id.toString() : null);
     });
 }
 
@@ -80,35 +91,45 @@ function getUserIdByName(username, onSuccessCallback){
 }
 
 /*
-*   ENTIDAD LOGIN
+*   ENTIDAD LOGIN - TEST OK
 */
 app.post('/api/login', (req, res) => {
     let user = req.body;
     
     // Obtiene el token
     mongoFind(user, databaseName, "users", {}, function(data){
-        if (data.length > 0){
+        if (data.length == 1){
             var token = jwtCreateToken({ "username": data[0].username, "id": data[0]._id.toString() });
 
             res.status(200).send( {"token": token} );
         }else{
             endByError(res, "Credenciales incorrectas", 401);
+            return;
         }
     });
 });
 
 /*
-*   ENTIDAD MESSAGES
+*   ENTIDAD MESSAGES - TEST OK
 */
 app.post('/api/messages', (req, res) => {
+    if (req.body.to == undefined || req.body.message == undefined){
+        endByError(res, "La request no posee el formato válido", 400);
+        return;
+    }
+
     let token = req.body.token;
 
     jwtValidateToken(res, token, function(data){
         if (data.error == undefined){
             getUserIdByName(req.body.to, function(user){
-                mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, databaseName, "messages");
+                if (user != null){
+                    mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, databaseName, "messages");
                 
-                res.status(200).send( {"token": data.token} );
+                    res.status(200).send( {"token": data.token} );
+                }else{
+                    endByError(res, "El usuario indicado no existe", 400);
+                }
             });
         }
     });
@@ -140,7 +161,7 @@ app.get('/api/messages', (req, res) => {
 */
 // Se conecta a la Base
 function mongoConnect(onSuccessCallback){
-    mongoDb.connect("mongodb://pabloanania:" + dbpassword + "@ds115753.mlab.com:15753/pabloanania", function(err, db) {
+    mongoDb.connect(connectionString, function(err, db) {
         if (err) throw err;
         onSuccessCallback(db);
     });
