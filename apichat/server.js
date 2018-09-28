@@ -129,7 +129,7 @@ app.post('/api/messages', (req, res) => {
         if (data.error == undefined){
             getUserIdByName(req.body.to, function(user){
                 if (user != null){
-                    mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, databaseName, "messages");
+                    mongoInsert({ "from": data.id, "to": user, "message": req.body.message, "readed": false }, databaseName, "messages", function(i_res, err){});
                 
                     res.status(201).send( {"token": data.token} );
                 }else{

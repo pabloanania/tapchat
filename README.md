@@ -4,4 +4,4 @@
 * Diego Gonçalves (90830)
 
 ## TO DO:
-* Probar mLab en NB
+* Nothing for now : )
