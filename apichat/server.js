@@ -86,18 +86,12 @@ app.post('/api/users/', (req, res) => {
         return;
     }
 
-    let token = req.body.token;
-
-    jwtValidateToken(res, token, function(data){ 
-        if (data.error == undefined){
-            mongoInsert({ "username": req.body.username, "password" : req.body.password }, databaseName, "users", function(i_res, err){
-                if (err){
-                    if (err.code == 11000)
-                        endByError(res, "El usuario que intenta crear ya existe", 400);
-                }else
-                    res.status(201).send( {"token": data.token} );
-            });
-        }
+    mongoInsert({ "username": req.body.username, "password" : req.body.password, "logged": false }, databaseName, "users", function(i_res, err){
+        if (err){
+            if (err.code == 11000)
+                endByError(res, "El usuario que intenta crear ya existe", 400);
+        }else
+            res.status(201).send();
     });
 });
 
