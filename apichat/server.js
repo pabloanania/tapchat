@@ -9,7 +9,7 @@ const connectionString = 'mongodb://pabloanania:universidaddepalermo2018@ds11575
 const databaseName = 'pabloanania';
 //const connectionString = 'mongodb://localhost:27017/';
 //const databaseName = 'tap';
-const tokenExpiration = 60;                     // Expresado en segundos
+const tokenExpiration = 10;                     // Expresado en segundos
 
 
 
@@ -25,6 +25,22 @@ app.use((req, res, next) => {
         }
         next();
     });
+});
+
+// Añade headers que se envian a la Response para permitir CORS deseados
+app.use(function (req, res, next) {
+    // Sitio a los que permite contactarse
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
+    //res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Métodos HTTP permitidos
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Headers de request permitidos por el server
+    res.setHeader('Access-Control-Allow-Headers', 'origin, content-type, accept');
+
+    // Siguiente capa del middleware
+    next();
 });
 
 
@@ -106,9 +122,26 @@ app.post('/api/login', (req, res) => {
         if (data.length == 1){
             var token = jwtCreateToken({ "username": data[0].username, "id": data[0]._id.toString() });
 
-            res.status(200).send( {"token": token} );
+            mongoUpdateOne({"_id": data[0]._id}, {"logged": true}, databaseName, "users", function(){
+                res.status(200).send( {"token": token} );
+            });
         }else{
             endByError(res, "Credenciales incorrectas", 401);
+            return;
+        }
+    });
+});
+
+app.post('/api/logout', (req, res) => {
+    let token = req.body.token;
+
+    jwtValidateToken(res, token, function(data){
+        if (data.error == undefined){
+            mongoUpdateOne({"_id": mongoDb.ObjectId(data.id)}, {"logged": false}, databaseName, "users", function(){
+                res.status(200).send();
+            });
+        } else {
+            endByError(res, "La sesión ha expirado", 401);
             return;
         }
     });
